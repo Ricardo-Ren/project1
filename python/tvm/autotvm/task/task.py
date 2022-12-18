@@ -483,7 +483,7 @@ def create(task_name, args, target, target_host=None):
     ret.flop = ret.config_space.flop or compute_flop(sch)
     ret.target = target
     ret.target_host = target_host
-
+    ret.sch = sch
     return ret
 
 

@@ -98,6 +98,7 @@ def compute(shape, fcompute, name="compute", tag="", attrs=None, varargs_names=N
     shape = tuple([int(s) if isinstance(s, float) else s for s in shape])
     out_ndim = len(shape)
 
+    # Step 1: Get argument list input lambda expression
     argspec = inspect.getfullargspec(fcompute)
     if len(argspec.args) == 0 and argspec.varargs is None:
         arg_names = ["i%d" % i for i in range(out_ndim)]
@@ -129,8 +130,12 @@ def compute(shape, fcompute, name="compute", tag="", attrs=None, varargs_names=N
         )
 
     dim_var = [tvm.tir.IterVar((0, s), x, 0) for x, s in zip(arg_names, shape[:out_ndim])]
+    # Step 2: Create List[PrimExpr] from lambda expression
     body = fcompute(*[v.var for v in dim_var])
-
+    
+    # Step 3: Create Operation Node from lambda expression fcompute
+    # te.compute 根据 lambda 表达式创建了一个 PrimExpr 的数组，并且将 PrimExpr
+    # 打包到一个Operation（这里是 ComputeOp 类型
     if isinstance(body, _tensor.TensorIntrinCall):
         for i, s in enumerate(shape[out_ndim:]):
             var_name = "ax" + str(i)
@@ -151,7 +156,8 @@ def compute(shape, fcompute, name="compute", tag="", attrs=None, varargs_names=N
             body = [body]
         body = convert(body)
         op_node = _ffi_api.ComputeOp(name, tag, attrs, dim_var, body)
-
+    
+     # Step 4: Return output of Operation Node as Created Tensor
     num = op_node.num_outputs
     outputs = tuple(op_node.output(i) for i in range(num))
     return outputs[0] if num == 1 else outputs

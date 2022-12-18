@@ -209,13 +209,14 @@ tuning_option = {
     "early_stopping": None,
     "measure_option": autotvm.measure_option(
         builder=autotvm.LocalBuilder(),
-        runner=autotvm.RPCRunner(
-            env.TARGET,
-            host=tracker_host,
-            port=tracker_port,
+        runner=autotvm.LocalRunner(
+            # env.TARGET,
+            # host=tracker_host,
+            # port=tracker_port,
             number=5,
             timeout=60,
-            module_loader=vta.module_loader(),
+            # module_loader=vta.module_loader(),
+            # module_loader=None if env.TARGET in ["sim"] else vta.module_loader(),
             # check_correctness=True, # TODO: re-enable when check_correctness works again.
         ),
     ),
@@ -390,7 +391,7 @@ def tune_and_evaluate(tuning_opt):
 
     # We do not run the tuning in our webpage server since it takes too long.
     # Comment the following line to run it by yourself.
-    return
+    #return
 
     # run tuning tasks
     print("Tuning...")

@@ -120,6 +120,7 @@ tuning_option = {
             port=tracker_port,
             number=5,
             timeout=60,
+            module_loader=None if env.TARGET in ["sim"] else vta.module_loader(),
             # check_correctness=True, # TODO: re-enable when check_correctness works again.
         ),
     ),
@@ -267,9 +268,9 @@ def register_vta_tuning_tasks():
 # Finally, we launch tuning jobs and evaluate the end-to-end performance.
 def tune_and_evaluate(tuning_opt):
 
-    if env.TARGET != "intelfocl":
-        print("ALU only op only available for intelfocl target")
-        return
+    # if env.TARGET != "intelfocl":
+    #     print("ALU only op only available for intelfocl target")
+    #     return
 
     # Register VTA tuning tasks
     register_vta_tuning_tasks()

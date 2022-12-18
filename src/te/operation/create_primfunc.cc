@@ -408,6 +408,8 @@ Array<te::Operation> CollectOrderedOps(const Array<te::Tensor>& arg_list) {
   for (const te::Tensor& arg : arg_list) {
     arg_ops.push_back(arg->op);
   }
+  // Step 1. 将所有的 Operation 对应的 PrimExpr AST 片段连接起来
+  // 构成完整的 AST Graph
   te::ReadGraph g = te::CreateReadGraph(arg_ops);
   Array<te::Operation> order = te::PostDFSOrder(arg_ops, g);
 
@@ -488,6 +490,7 @@ PrimFunc GenerateAndCompletePrimFunc(const Array<te::Tensor>& arg_list,
 PrimFunc CreatePrimFuncWithConstants(const Array<te::Tensor>& arg_list,
                                      const Array<runtime::NDArray>& constants) {
   // Infomations used in CreatePrimFunc and its sub-functions.
+  
   CreateFuncInfo info(arg_list);
   // Root body stmts.
   Array<Stmt> root_stmts;
@@ -495,6 +498,8 @@ PrimFunc CreatePrimFuncWithConstants(const Array<te::Tensor>& arg_list,
   arith::Analyzer analyzer;
 
   // Step 1. Create ordered array of operations and validate they are supported.
+  // Step 2. 采用 post-DFS 遍历 AST Graph
+  
   Array<te::Operation> order = CollectOrderedOps(arg_list);
 
   // Step 2. Initialize buffer binds map

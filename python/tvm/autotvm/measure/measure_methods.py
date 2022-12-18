@@ -213,6 +213,7 @@ class LocalBuilder(Builder):
         return results
 
 
+
 class RPCRunner(Runner):
     """Run generated code on remove devices.
     This function will ask a RPC Tracker to get device for measurement.
@@ -872,3 +873,74 @@ def gpu_verify_pass(**kwargs):
         return f
 
     return tvm.tir.transform.prim_func_pass(verify_pass, opt_level=0)
+
+
+class MYBuilder():
+    """Run compilation on local machine"""
+
+    def __init__(self):
+        self.task = None
+        self.build_kwargs = None
+        self.n_parallel = 2
+    def build(self, measure_inputs):
+        #this place can write a function for what iter varibale to be tiled
+        results = []
+        return results
+    def set_task(self, task, build_kwargs):
+        self.task = task
+        self.build_kwargs = build_kwargs
+
+
+class MYRunner(Runner):
+    """Run generated code on remove devices."""
+    def __init__(
+        self,
+        key,
+        timeout=10,
+        n_parallel=None,
+        number=4,
+        repeat=3,
+        module_loader=None,
+    ):
+        super(MYRunner, self).__init__(timeout, n_parallel)
+
+        self.key = key
+        self.timeout = timeout
+
+        self.number = number
+        self.repeat = repeat
+
+        self.module_loader = module_loader
+
+
+    @property
+    def ref_input(self):
+        """
+        Fixed input for tuning special operators, e.g., sparse operators
+        requiring indices as input.
+        """
+        return self._ref_input
+
+    @ref_input.setter
+    def ref_input(self, val):
+        if val is not None:
+            warnings.warn(
+                "You are specifying fixed input for tuning the operator. "
+                "Be sure your input always fits the operator. Some "
+                "operators may conduct layout transformation during tuning, "
+                "thus can lead to unexpected behaviors. ",
+                RuntimeWarning,
+            )
+        self._ref_input = val
+
+    def set_task(self, task):
+        self.task = task
+
+    def get_build_kwargs(self):
+        kwargs = []
+        return kwargs
+
+    def run(self, measure_inputs, build_results):
+        results = []
+
+        return results

@@ -113,11 +113,11 @@ if __name__ == "__main__":
         os.remove(log_file)
 
     # Get tracker info from env
-    tracker_host = os.environ.get("TVM_TRACKER_HOST", None)
-    tracker_port = os.environ.get("TVM_TRACKER_PORT", None)
-    if not tracker_host or not tracker_port:
-        print("Set your AutoTVM tracker node host and port variables to run the autotuner")
-        exit()
+    # tracker_host = os.environ.get("TVM_TRACKER_HOST", None)
+    # tracker_port = os.environ.get("TVM_TRACKER_PORT", None)
+    # if not tracker_host or not tracker_port:
+    #     print("Set your AutoTVM tracker node host and port variables to run the autotuner")
+    #     exit()
 
     for idx, (wl_name, wl) in enumerate(mobilenet_wkls):
         prefix = "[Task %2d/%2d] " % (idx, len(mobilenet_wkls))
