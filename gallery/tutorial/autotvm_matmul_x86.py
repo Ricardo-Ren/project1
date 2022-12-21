@@ -236,13 +236,14 @@ def matmul(N, L, M, dtype):
     cfg = autotvm.get_config()
     cfg.define_split("tile_y", y, num_outputs=2)
     cfg.define_split("tile_x", x, num_outputs=2)
+    cfg.define_split("tile_k", k, num_outputs=2)
     ##### define space end #####
 
     # schedule according to config
     yo, yi = cfg["tile_y"].apply(s, C, y)
     xo, xi = cfg["tile_x"].apply(s, C, x)
-
-    s[C].reorder(yo, xo, k, yi, xi)
+    ko, ki = cfg["tile_x"].apply(s, C, k)
+    s[C].reorder(yo, xo, ko, ki, yi, xi)
 
     return s, [A, B, C]
 

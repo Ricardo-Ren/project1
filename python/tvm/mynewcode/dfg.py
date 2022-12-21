@@ -1,0 +1,2 @@
+class dfg_node:
+    

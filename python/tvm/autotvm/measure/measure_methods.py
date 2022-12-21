@@ -213,7 +213,6 @@ class LocalBuilder(Builder):
         return results
 
 
-
 class RPCRunner(Runner):
     """Run generated code on remove devices.
     This function will ask a RPC Tracker to get device for measurement.
@@ -877,70 +876,58 @@ def gpu_verify_pass(**kwargs):
 
 class MYBuilder():
     """Run compilation on local machine"""
-
-    def __init__(self):
+    def __init__(self, n_parallel=None):
         self.task = None
-        self.build_kwargs = None
-        self.n_parallel = 2
+        # self.n_parallel = n_parallel or multiprocessing.cpu_count()
+        
+    def set_task(self, task, build_kwargs=None):
+        self.task = task
+        
     def build(self, measure_inputs):
-        #this place can write a function for what iter varibale to be tiled
         results = []
         return results
-    def set_task(self, task, build_kwargs):
-        self.task = task
-        self.build_kwargs = build_kwargs
-
 
 class MYRunner(Runner):
     """Run generated code on remove devices."""
+
     def __init__(
         self,
-        key,
-        timeout=10,
-        n_parallel=None,
-        number=4,
-        repeat=3,
-        module_loader=None,
+        key
     ):
-        super(MYRunner, self).__init__(timeout, n_parallel)
-
         self.key = key
-        self.timeout = timeout
 
-        self.number = number
-        self.repeat = repeat
-
-        self.module_loader = module_loader
-
-
-    @property
-    def ref_input(self):
-        """
-        Fixed input for tuning special operators, e.g., sparse operators
-        requiring indices as input.
-        """
-        return self._ref_input
-
-    @ref_input.setter
-    def ref_input(self, val):
-        if val is not None:
-            warnings.warn(
-                "You are specifying fixed input for tuning the operator. "
-                "Be sure your input always fits the operator. Some "
-                "operators may conduct layout transformation during tuning, "
-                "thus can lead to unexpected behaviors. ",
-                RuntimeWarning,
-            )
-        self._ref_input = val
 
     def set_task(self, task):
         self.task = task
-
     def get_build_kwargs(self):
-        kwargs = []
-        return kwargs
-
-    def run(self, measure_inputs, build_results):
-        results = []
-
+        return []
+    def run(self, measure_inputs, build_results, external_memory_bandwidth, local_memory_bandwidth, local_memory_size, PE_number,
+    matrix_core_x, matrix_core_k, matrix_core_y):
+        results = list()
+        # the unit is Byte/s
+        # external_memory_bandwidth = 10000
+        # local_memory_bandwidth = 100
+        # local_memory_size = 500
+        # FLOPS = 100
+        # PE_number = 3
+        for inputs in measure_inputs:
+            mp = inputs.config._entity_map
+            single_pe_flops = self.task.Single_Exp_FLOP
+            O_X, O_Y, O_K, TPype = self.task.args
+            tile_X = str(mp['tile_x'])
+            tile_Y = str(mp['tile_y'])
+            tile_K = str(mp['tile_k'])
+            import re
+            inner_X = int(re.split(',|]| ', tile_X)[-2])
+            inner_Y = int(re.split(',|]| ', tile_Y)[-2])
+            inner_K = int(re.split(',|]| ', tile_Z)[-2])
+            outer_x = O_X/inner_X
+            outer_y = O_Y/inner_Y
+            outer_k = O_Z/inner_K
+            Flops_per_PE_onetime = inner_X*inner_Y*single_pe_flops
+            data_memory_needed = inner_X*O_Y + inner_Y*O_X
+            data_memory_output = inner_X*inner_Y
+            T_PE_onetime = max(Flops_per_PE_onetime/FLOPS, data_memory_needed/local_memory_bandwidth, (data_memory_needed+data_memory_output)/external_memory_bandwidth)
+            all_time = (outer_x*outer_y*O_K/PE_number) * T_PE_onetime
+            results.append(all_time)
         return results

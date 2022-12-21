@@ -48,6 +48,7 @@ class Tuner(object):
         # keep the current best
         self.best_config = None
         self.best_flops = 0
+        self.least_time_cost = 1e10
         self.best_measure_pair = None
         self.best_iter = 0
         self.error_ct_threshold = 150
@@ -90,6 +91,81 @@ class Tuner(object):
         results: Array of autotvm.measure.MeasureResult
             result for measurement
         """
+    def tune_new(self, n_trial, measure_option, early_stopping=None, callbacks=(), si_prefix="G"):
+        """Begin tuning
+
+        Parameters
+        ----------
+        n_trial: int
+            Maximum number of configs to try (measure on real hardware)
+        measure_option: dict
+            The options for how to measure generated code.
+            You should use the return value ot autotvm.measure_option for this argument.
+        early_stopping: int, optional
+            Early stop the tuning when not finding better configs in this number of trials
+        callbacks: List of callable
+            A list of callback functions. The signature of callback function is
+            (Tuner, List of MeasureInput, List of MeasureResult)
+            with no return value. These callback functions will be called on
+            every measurement pair. See autotvm/tuner/callback.py for some examples.
+        si_prefix: str
+            One of tvm.autotvm.utils.SI_PREFIXES. The SI prefix to use when reporting FLOPS.
+        """
+        measure_batch = create_measure_batch(self.task, measure_option)
+        n_parallel = getattr(measure_batch, "n_parallel", 1)
+        early_stopping = early_stopping or 1e9
+        self.n_trial = n_trial
+        self.early_stopping = early_stopping
+
+        # Validate si_prefix arg
+        format_si_prefix(0, si_prefix)
+
+        old_level = logger.level
+
+        GLOBAL_SCOPE.in_tuning = True
+        i = error_ct = 0
+        errors = []
+
+        external_memory_bandwidth = 1000
+        local_memory_bandwidth = 1000
+        local_memory_size = 100
+        
+        matrix_core_x = 16
+        matrix_core_k = 16
+        matrix_core_y = 16
+        
+        PE_number = 6
+        
+        while i < n_trial:
+            if not self.has_next():
+                break
+
+            configs = self.next_batch(min(n_parallel, n_trial - i))
+
+            inputs = [MeasureInput(self.task.target, self.task, config) for config in configs]
+            results = measure_batch(inputs, external_memory_bandwidth, local_memory_bandwidth, local_memory_size, PE_number, 
+            matrix_core_x, matrix_core_k, matrix_core_y)
+
+            # keep best config
+            for k, (inp, res) in enumerate(zip(inputs, results)):
+                config = inp.config
+                
+                if res < self.least_time_cost:
+                    self.least_time_cost = res
+                    self.best_config = config
+                    self.best_measure_pair = (inp, res)
+
+                logger.debug(
+                    "No: %d\t%sFLOPS: %.2f/%.2f\tresult: %s\t%s",
+                    i + k + 1,
+                    si_prefix,
+                    format_si_prefix(flops, si_prefix),
+                    format_si_prefix(self.best_flops, si_prefix),
+                    result_msg,
+                    config,
+                )
+        del measure_batch
+
 
     def tune(self, n_trial, measure_option, early_stopping=None, callbacks=(), si_prefix="G"):
         """Begin tuning

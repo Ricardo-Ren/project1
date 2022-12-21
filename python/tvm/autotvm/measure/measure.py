@@ -286,11 +286,13 @@ def create_measure_batch(task, option):
     build_kwargs = runner.get_build_kwargs()
     builder.set_task(task, build_kwargs)
 
-    def measure_batch(measure_inputs):
+    def measure_batch(measure_inputs, external_memory_bandwidth, local_memory_bandwidth, local_memory_size, FLOPS, PE_number):
         build_results = builder.build(measure_inputs)
-        results = runner.run(measure_inputs, build_results)
+        results = runner.run(measure_inputs, build_results, external_memory_bandwidth, local_memory_bandwidth, local_memory_size, PE_number, 
+        matrix_core_x, matrix_core_k, matrix_core_y)
         return results
 
-    measure_batch.n_parallel = builder.n_parallel
+    # measure_batch.n_parallel = builder.n_parallel
+    measure_batch.n_parallel = 2
     measure_batch.attach_objects = attach_objects
     return measure_batch

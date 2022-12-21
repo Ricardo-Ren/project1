@@ -29,12 +29,14 @@ def matmul(N, L, M, dtype):
     cfg = autotvm.get_config()
     cfg.define_split("tile_y", y, num_outputs=2)
     cfg.define_split("tile_x", x, num_outputs=2)
+    cfg.define_split("tile_k", k, num_outputs=2)
     ##### define space end #####
 
     # schedule according to config
     yo, yi = cfg["tile_y"].apply(s, C, y)
     xo, xi = cfg["tile_x"].apply(s, C, x)
-    s[C].reorder(yo, xo, k, yi, xi)
+    ko, ki = cfg["tile_x"].apply(s, C, k)
+    s[C].reorder(yo, xo, ko, ki, yi, xi)
 
     # calculate one what one (xi, yi, computation)'s macs is and map it to the PE 
     # st,  macs < the predefined MACs for one PE
@@ -53,16 +55,15 @@ logging.getLogger("autotvm").addHandler(logging.StreamHandler(sys.stdout))
 # There are two steps for measuring a config: build and run. By default, we use
 # all CPU cores to compile program. We then measure them sequentially. To help
 # reduce variance, we take 5 measurements and average them.
-measure_option = autotvm.measure_option(builder=autotvm.MYBuilder(), runner=autotvm.MYRunner(key="simulator", number=5))
+measure_option = autotvm.measure_option(builder=autotvm.MYBuilder(), runner=autotvm.MYRunner(key="simulator"))
 #measure_option = autotvm.measure_option(builder="local", runner=autotvm.LocalRunner(number=5))
 
 # Begin tuning with RandomTuner, log records to file `matmul.log`
 # You can use alternatives like XGBTuner.
 tuner = autotvm.tuner.RandomTuner(task)
-tuner.tune(
+tuner.tune_new(
     n_trial=10,
     measure_option=measure_option,
-    callbacks=[autotvm.callback.log_to_file("matmul.log")],
 )
 
 ################################################################################
