@@ -9,6 +9,35 @@ import tvm.testing
 # the module is called `autotvm`
 from tvm import autotvm
 
+@autotvm.template("tutorial/matmul_block")  # 1. use a decorator
+def matmul_v1(N, L, M, dtype, matrix_core_x, matrix_core_k, matrix_core_y):
+    A = te.placeholder((N, L), name="A", dtype=dtype)
+    B = te.placeholder((L, M), name="B", dtype=dtype)
+
+    k = te.reduce_axis((0, L), name="k")
+    C = te.compute((N, M), lambda i, j: te.sum(A[i, k] * B[k, j], axis=k), name="C")
+    s = te.create_schedule(C.op)
+
+    # schedule
+    y, x = s[C].op.axis
+    k = s[C].op.reduce_axis[0]
+
+    # 2. get the config object
+    cfg = autotvm.get_config()
+
+    # 3. define search space
+    cfg.define_knob("tile_y", [matrix_core_y])
+    cfg.define_knob("tile_x", [matrix_core_x])
+    cfg.define_knob("tile_k", [matrix_core_k])
+    # 4. schedule according to config
+    yo, yi = s[C].split(y, cfg["tile_y"].val)
+    xo, xi = s[C].split(x, cfg["tile_x"].val)
+    ko, ki = s[C].split(k, cfg["tile_k"].val)
+
+    s[C].reorder(yo, xo, ko, ki, yi, xi)
+
+    return s, [A, B, C]
+
 
 @autotvm.template("tutorial/matmul")
 def matmul(N, L, M, dtype):
@@ -45,7 +74,10 @@ def matmul(N, L, M, dtype):
     return s, [A, B, C]
 
 N, L, M = 512, 512, 512
-task = autotvm.task.create("tutorial/matmul", args=(N, L, M, "float32"), target="llvm")
+matrix_core_x = 16
+matrix_core_k = 16
+matrix_core_y = 16
+task = autotvm.task.create("tutorial/matmul_block", args=(N, L, M, "float32", matrix_core_x, matrix_core_k, matrix_core_y), target="llvm")
 print(task.config_space)
 
 logging.getLogger("autotvm").setLevel(logging.DEBUG)

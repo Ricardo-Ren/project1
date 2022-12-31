@@ -286,7 +286,7 @@ def create_measure_batch(task, option):
     build_kwargs = runner.get_build_kwargs()
     builder.set_task(task, build_kwargs)
 
-    def measure_batch(measure_inputs, external_memory_bandwidth, local_memory_bandwidth, local_memory_size, FLOPS, PE_number):
+    def measure_batch(measure_inputs, external_memory_bandwidth, local_memory_bandwidth, local_memory_size, PE_number, matrix_core_x, matrix_core_k, matrix_core_y):
         build_results = builder.build(measure_inputs)
         results = runner.run(measure_inputs, build_results, external_memory_bandwidth, local_memory_bandwidth, local_memory_size, PE_number, 
         matrix_core_x, matrix_core_k, matrix_core_y)

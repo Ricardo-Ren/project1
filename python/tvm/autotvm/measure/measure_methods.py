@@ -903,31 +903,75 @@ class MYRunner(Runner):
         return []
     def run(self, measure_inputs, build_results, external_memory_bandwidth, local_memory_bandwidth, local_memory_size, PE_number,
     matrix_core_x, matrix_core_k, matrix_core_y):
-        results = list()
+        # create a hashmap for the data loaded when something already been loaded just skip that
+        # first choose several small block matrix multiplication and there should be no dependence(so this will be temporal mapping)
+        # and second
+        # use greedy algorithm first
+        # totally 27 block matrix multiplication
+        # randomly gives 4 block matrix multiplication to the four PEs
+        # and then search every local memory to find what memory already have and make them on the PEs
+        results = []
         # the unit is Byte/s
         # external_memory_bandwidth = 10000
         # local_memory_bandwidth = 100
         # local_memory_size = 500
         # FLOPS = 100
         # PE_number = 3
+
         for inputs in measure_inputs:
             mp = inputs.config._entity_map
             single_pe_flops = self.task.Single_Exp_FLOP
-            O_X, O_Y, O_K, TPype = self.task.args
+            O_X, O_Y, O_K, TPype = self.task.args[0:4]
             tile_X = str(mp['tile_x'])
             tile_Y = str(mp['tile_y'])
-            tile_K = str(mp['tile_k'])
-            import re
-            inner_X = int(re.split(',|]| ', tile_X)[-2])
-            inner_Y = int(re.split(',|]| ', tile_Y)[-2])
-            inner_K = int(re.split(',|]| ', tile_Z)[-2])
-            outer_x = O_X/inner_X
-            outer_y = O_Y/inner_Y
-            outer_k = O_Z/inner_K
+            tile_Z = str(mp['tile_k'])
+            # import re
+            # tile_X = int(re.split(',|]| ', tile_X)[-2])
+            # tile_Y = int(re.split(',|]| ', tile_Y)[-2])
+            # tile_Z = int(re.split(',|]| ', tile_Z)[-2])
+            outer_x = O_X/int(tile_X)
+            outer_y = O_Y/int(tile_Y)
+            
+            PE_local_memory = [[-1, -1, 0] for i in range(PE_number)]
+            list = [(i, []) for i in range (int(outer_x+outer_y))]
+            matrix_block_map = dict(list)
+            k = 0
+            all_PE = [i for i in range(PE_number)]
+            
+            def find_free_PE(PEwithBlocks):
+                for i in PEwithBlocks:
+                    if PE_local_memory[i][-1] == 0:
+                        return i
+                return -1
+
+            for i in range(outer_x):
+                for j in range(outer_y):
+                    a = matrix_block_map[i]
+                    b = matrix_block_map[outer_x+j]
+                    a_onchip = 1 if len(a)>0 else 0
+                    b_onchip = 1 if len(b)>0 else 0
+                    i_PE = find_free_PE(a)
+                    j_PE = find_free_PE(b)
+                    if not a_onchip and not b_onchip:
+                        free_PE = find_free_PE(all_PE)
+                        PE_local_memory[free_PE][-1] = 1
+                        local_memory =  
+                        pass
+                    elif a_onchip:
+                        if i_PE!=-1:
+
+
+                    if find_free_PE(all_PE)==-1:
+                        #time++
+
+                    # for PE in PE_local_memory:
+                    #     if 
+
+
             Flops_per_PE_onetime = inner_X*inner_Y*single_pe_flops
             data_memory_needed = inner_X*O_Y + inner_Y*O_X
             data_memory_output = inner_X*inner_Y
-            T_PE_onetime = max(Flops_per_PE_onetime/FLOPS, data_memory_needed/local_memory_bandwidth, (data_memory_needed+data_memory_output)/external_memory_bandwidth)
+            T_PE_onetime = max(1, data_memory_needed/local_memory_bandwidth, (data_memory_needed+data_memory_output)/external_memory_bandwidth)
             all_time = (outer_x*outer_y*O_K/PE_number) * T_PE_onetime
             results.append(all_time)
         return results

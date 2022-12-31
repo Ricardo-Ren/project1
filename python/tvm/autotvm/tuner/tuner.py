@@ -155,15 +155,15 @@ class Tuner(object):
                     self.best_config = config
                     self.best_measure_pair = (inp, res)
 
-                logger.debug(
-                    "No: %d\t%sFLOPS: %.2f/%.2f\tresult: %s\t%s",
-                    i + k + 1,
-                    si_prefix,
-                    format_si_prefix(flops, si_prefix),
-                    format_si_prefix(self.best_flops, si_prefix),
-                    result_msg,
-                    config,
-                )
+                # logger.debug(
+                #     "No: %d\t%stime: %.2f/%.2f\tresult: %s\t%s",
+                #     i + k + 1,
+                #     si_prefix,
+                #     format_si_prefix(res, si_prefix),
+                #     format_si_prefix(self.best_flops, si_prefix),
+                #     result_msg,
+                #     config,
+                # )
         del measure_batch
 
 
